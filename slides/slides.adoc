@@ -1,4 +1,4 @@
-= Rust als sichere Sprache für systemnahe und parallele Software
+= fancy rust titel
 :revealjs_theme: solarized
 // [...] other document attributes
 :source-highlighter: highlightjs
@@ -7,37 +7,69 @@
 :revealjs_history: true
 :highlightjs-theme: solarized-dark.css
 
-== !
-|===
-|Stefan Lankes | Jens Breitbart
+== Persönlicher Hintergrund
 
-| image:images/stl.png[width=100] | image:images/jbreitbart.png[width=100]
+* Stefan Lankes
+** ca. 20 Jahre an der RWTH Aachen
+** Lehrt und forscht im Bereich der Systemsoftware
+*** Insbesondere für das Hochleistungsrechnen
+** Verwendet hauptsächlich C, C++ und Assembler
+** https://github.com/stlankes[github.com/stlankes]
 
-| https://github.com/stlankes[github.com/stlankes] | https://github.com/jbreitbart[github.com/jbreitbart]
+=== Im Wandel der Zeit
 
-| https://rwth-os.github.io/eduOS-rs/[eduOS-rs],  http://www.hermitcore.org[HermitCore] | https://www.jensbreitbart.de/[jensbreitbart.de]
+* Der Entwicklungsprozess hat sich komplett geändert
+** Versionsverwaltung: git
+** Social Coding: GitHub
+** Continuous Integration: Travis CI
+** Die Art des Testens: Code Coverage
+** Neue Programmiersprachen: Go, Julia, ...
+** *Linux wurde zum Windows der Akademiker*
 
-| System Software @ RWTH | _Here for fun and no profit_
+=== Never change a running system
 
+* Das OS Design hat sich nicht grundlegenden geändert
+* C dominiert weiterhin
+** Noch zeitgemäß?
+** Wird C eine Domain Specific Language?
+* Der Entwicklungsprozess eines OS entfernt sich von einer Anwendung
 
-|===
+== Wie sieht eine ideale Sprache für die OS-Entwicklung aus?
 
-== Hinweise zum Vortrag
+=== Vor-/Nachteile von C
 
-* Folien: https://stlankes.github.io/rust_parallel2018/
-* Beispiele: https://github.com/stlankes/rust_parallel2018
-* Einstieg: https://www.rust-lang.org
-* Playground: https://play.rust-lang.org
-* Tutorial: https://rustbyexample.com
+* C ist aus der UNIX-Entwicklung entstanden
+** Passt zur OS Entwicklung
+* Hoher Freiheitsgrad, kein Overhead
+* Fehler anfällig
+* Keine Laufzeitumgebung direkt im Kernel nutzbar
+** Jeder definiert sich seine eigene
+** z.B. https://github.com/freebsd/freebsd/tree/master/sys/libkern[libkern von FreeBSD]
+** strcpy, memcpy, qsort, ...
 
-[NOTE.speaker]
---
-* wechsel zu Jens
---
+=== Wünsche an einer OS-Sprache
+
+* Kein Overhead
+* Einfache Integration von C-Code
+* Vermeidung von Wettlaufsituationen
+* Einfacher und korrektur Umgang mit Zeigern
+** Keine *Dangling Pointers*, keine Pufferüberläufe
+** Kein Garbage Collection
+* Einfache Integration von existierenden Code
+
+=== Wiederverwendung von Go-Code
 
 [source, bash]
 ----
-curl https://sh.rustup.rs -sSf | sh
+go get gopkg.in/lockfree
+----
+
+[source, Go]
+----
+import (
+        "gopkg.in/lockfree"
+        "gopkg.in/lockfree/list"
+)
 ----
 
 == Was ist Rust?
@@ -51,7 +83,7 @@ fn main() {
     // das compilierte Binary gestartet wird.
 
     // Ausgabe auf stdout
-    println!("Hello para//el 2018!");
+    println!("Hello CCCAC!");
 }
 ----
 

@@ -1,4 +1,4 @@
-= fancy rust titel
+= The day after C
 :revealjs_theme: solarized
 // [...] other document attributes
 :source-highlighter: highlightjs
@@ -13,6 +13,7 @@
 ** ca. 20 Jahre an der RWTH Aachen
 ** Lehrt und forscht im Bereich der Systemsoftware
 *** Insbesondere für das Hochleistungsrechnen
+*** Unikernels
 ** Verwendet hauptsächlich C, C++ und Assembler
 ** https://github.com/stlankes[github.com/stlankes]
 
@@ -24,14 +25,14 @@
 ** Continuous Integration: Travis CI
 ** Die Art des Testens: Code Coverage
 ** Neue Programmiersprachen: Go, Julia, ...
-** *Linux wurde zum Windows der Akademiker*
+** _Linux wurde zum Windows der Akademiker_
 
 === Never change a running system
 
 * Das OS Design hat sich nicht grundlegenden geändert
 * C dominiert weiterhin
+** https://marc.info/?l=openbsd-misc&m=151233345723889&w=2[Ein Wechsel benötigt  zu viel Zeit]
 ** Noch zeitgemäß?
-** Wird C eine Domain Specific Language?
 * Der Entwicklungsprozess eines OS entfernt sich von einer Anwendung
 
 == Wie sieht eine ideale Sprache für die OS-Entwicklung aus?
@@ -52,24 +53,29 @@
 * Kein Overhead
 * Einfache Integration von C-Code
 * Vermeidung von Wettlaufsituationen
-* Einfacher und korrektur Umgang mit Zeigern
+* Einfacher und korrekter Umgang mit Zeigern
 ** Keine *Dangling Pointers*, keine Pufferüberläufe
 ** Kein Garbage Collection
-* Einfache Integration von existierenden Code
 
-=== Wiederverwendung von Go-Code
+=== Wiederverwendung von Rust-Code
 
 [source, bash]
 ----
-go get gopkg.in/lockfree
+$> cat Cargo.toml
+[dependencies.raw-cpuid]
+version = "3.1.0"
+features = ["nightly"]
+
+[dependencies.x86]
+path = "../crates/x86"
+default-features = false
 ----
 
-[source, Go]
+[source, Rust]
 ----
-import (
-        "gopkg.in/lockfree"
-        "gopkg.in/lockfree/list"
-)
+extern crate raw_cpuid;
+extern crate spin;
+extern crate x86;
 ----
 
 == Was ist Rust?
@@ -178,7 +184,7 @@ std::vector<std::string>* x = nullptr;
 {
 	std::vector<std::string> z;
 
-	z.push_back("Hello para//el 2018!");
+	z.push_back("Hello CCCAC!");
 	x = &z;
 }
 
@@ -201,7 +207,7 @@ std::cout << (*x)[0] << std::endl;
 let x;
 
 {
-	let z = vec!("Hello para//el 2018!");
+	let z = vec!("Hello CCCAC!");
 
 	x = &z;
 }
@@ -213,7 +219,7 @@ println!("{}", x[0]);
 --
 --
 
-=== Fragen wir den Compiler
+=== Was sagt der Compiler?
 
 [source, Rust]
 ----
@@ -251,7 +257,7 @@ error[E0597]: `z` does not live long enough
 .Sind die geschweiften Klammern nötig?
 [source, Rust]
 ----
-let mut x = vec!("Hello para//el 2018!");
+let mut x = vec!("Hello CCCAC!");
 
 {
 	let z = &mut x;
@@ -274,509 +280,150 @@ error[E0502]: cannot borrow `v` as immutable because it is also borrowed as muta
    |                    ^ immutable borrow occurs here
 --
 
-== Ein einfaches Beispiel: Pi
 
-image::images/pi.png[width=600]
+== Ein OS mit Rust entwickeln
 
-[NOTE.speaker]
---
---
+=== Existierende Projekte
 
-=== Pi-Berechnung in C++
+* https://os.phil-opp.com[OS Blog von Philipp Oppermann]
+** War mein Startpunkt
+* https://www.redox-os.org[Redox]
+* https://www.tockos.org[Tock]
+* https://github.com/hermitcore/libhermit-rs[HermitCore]
+* https://github.com/RWTH-OS/eduOS-rs[eduOS-rs]
 
-* Für *num_steps* Rechtecke die Höhen bestimmen
-* Höhen Aufsummieren, zum Schluß mit der Breite multiplizieren
-
-[source, C++]
-----
-const int num_steps = 100000000;
-
-double sum = 0.0;
-double step = 1.0 / static_cast<double>(num_steps);
-
-for (int i = 0; i < num_steps; ++i) {
-    double x = (i + 0.5) * step;
-    sum += 4.0 / (1.0 + x * x);
-}
-
-std::cout << "Pi = " <<  sum * step << std::endl;
-----
-
-[NOTE.speaker]
---
---
-
-=== Pi-Berechnung in Rust
-
-* Äquivalenter Code in Rust
+=== Laufzeitumgebung
 
 [source, Rust]
 ----
-const NUM_STEPS: u64 = 100000000;
-let step = 1.0 / NUM_STEPS as f64;
-let mut sum = 0.0;
+#![no_std]
 
-for i  in 0..NUM_STEPS {
-    let x = (i as f64 + 0.5) * step;
-    sum += 4.0 / (1.0 + x * x);
-}
+use alloc::rc::Rc;
+use core::cell::RefCell;
 
-println!("Pi: {}", sum * step);
-----
-
-[NOTE.speaker]
---
---
-
-== Parallele Berechnung
-
-* Verteilung der Rechtecke über die Threads
-* Hier: Wettlaufsituation um die Variable **sum**
-
-[source, C++]
-----
-const double step = 1.0 / NUM_STEPS;
-double sum = 0.0;
-
-std::thread t([&](int start, int end){
-
-    for (int i = start; i < end; i++) {
-    	double x = (i + 0.5) * step;
-    	sum += 4.0 / (1.0 + x * x);
-    }
-
-}, (NUM_STEPS / nthreads) *  tid
- , (NUM_STEPS / nthreads) * (tid + 1));
-----
-
-[NOTE.speaker]
---
-wechsel Jens
-Im Code schleife über tid und join weggelassen
---
-
-=== Berechnung mit Rust
-
-* Versuch einer Wettlaufsituation in Rust
-
-[source, Rust]
-----
-let step = 1.0 / NUM_STEPS as f64;
-let mut sum = 0.0 as f64;
-
-let threads: Vec<_> = (0..nthreads)
-    .map(|tid| {
-        thread::spawn(|| {
-            let start = (NUM_STEPS / nthreads) * tid;
-            let end = (NUM_STEPS / nthreads) * (tid+1);
-
-            for i in start..end {
-                let x = (i as f64 + 0.5) * step;
-                sum += 4.0 / (1.0 + x * x);
-            }
-        })
-    }).collect();
-
-for t in threads {
-    t.join().unwrap();
+pub struct DoublyLinkedList<T> {
 }
 ----
 
-[NOTE.speaker]
---
---
+* Erste Schritt: Abhänigkeiten vom OS entfernen
+** Keine Verwendung der Standardlaufzeitumgebung möglich
+* Aber die *Core Runtime* ist verwendbar
 
-=== Compiler schlägt Alarm
+=== Kern-Laufzeitumgebung
 
-* Ausgeliehene Objekte könnten das Original überleben
-
-[source, Rust]
-----
-   |
-37 | thread::spawn(|| {
-   |               ^^ may outlive borrowed value `**step`
-...
-42 |    let x = (i as f64 + 0.5) * step;
-   |                               ---- `**step` is borrowed
-help: to force the closure to take ownership of `**step`
-   |
-37 |    thread::spawn(move || {
-   |                  ^^^^^^^
-----
-
-=> Ein std::thread darf nur auf Variablen zugreifen die er besitzt oder welche _static lifetime_ haben
-
-[NOTE.speaker]
---
---
-
-=== Berechnung mit Rust
-
-* Übergabe der Ownership (Compiler Vorschlag)
+* Cross-Compilierung für das *neue* OS nötig
+* Verwendung von Xargo um die Kern-Laufzeitumgebung zu bauen
+** Cargo ähnliche Cross-Compilierung
 
 [source, Rust]
 ----
-let step = 1.0 / NUM_STEPS as f64;
-let mut sum = 0.0 as f64;
-
-let threads: Vec<_> = (0..nthreads)
-    .map(|tid| {
-        thread::spawn(move || 	{
-            let start = (NUM_STEPS / nthreads) * tid;
-            let end = (NUM_STEPS / nthreads) * (tid+1);
-
-            for i  in start..end {
-                let x = (i as f64 + 0.5) * step;
-                sum += 4.0 / (1.0 + x * x);
-            }
-        })
-    }).collect();
+$> cat Xargo.toml
+[target.x86_64-hermit.dependencies]
+alloc = {}
+$> xargo build --target x86_64-hermit
 ----
 
-[NOTE.speaker]
---
---
+=== Target definieren
 
-=== Compiler schlägt Alarm
-
-* Objekte werden als unveränderliche übergeben
-* Wettlaufsituation wird verhindert
-* Keine Lösung für die Pi-Berechnung
-
-[source, Rust]
+[source, Json]
 ----
-error: cannot assign to immutable captured outer variable
-   |
-43 |   sum += 4.0 / (1.0 + x * x);
-   |   ^^^^^^^^^^^^^^^^^^^^^^^^^^
-----
-
-[NOTE.speaker]
---
---
-
-== Schutz statischer Elemente
-
-* Statische Element können gelesen werden
-* *unsafe*-Blöcke für Änderungen zwingend nötig
-** Entwickler wird sich den Gefahren bewußt
-
-[source, Rust]
-----
-static readonly_number: u64 = 42;
-static mut counter: u64 = 0;
-
-pub fn init() {
-    let i = readonly_number;
-
-    unsafe {
-        counter = i;
-    }
-}
-----
-
-[NOTE.speaker]
---
-wechsel Stefan
---
-
-=== Zugriffsschutz mit Mutexen / RWLock
-
-* Rust-Mutexe nehmen zu schützendes Objekt auf
-* *lock*-Methode liefert Objekt zum Zugriff zurück
-* Automatische Freigabe nach Zerstörung des Objekts
-
-[source, Rust]
-----
-static readonly_number: u64 = 42;
-static counter: Mutex<u64> = Mutex::new(0);
-
-pub fn init() {
-    let guard = counter.lock().unwrap();
-    guard = readonly_number;
-}
-----
-
-* RWLock bietet ein ähnliches Interface.
-
-[NOTE.speaker]
---
-fn lock(&self) -> LockResult<MutexGuard<T>>
-* MutexGuard gibt lock zurück
-* LockResult: "vergiftet" mutex, wenn thread zB paniced mit lock. Fehler bei jedem weiterem Zugriff von anderen threads.
---
-
-=== Gemeinsame Variablen
-
-* Heap-Allokation ermöglicht längere Lebenszeit
-** Speicherschutz über _reference counting_
-** `std::{Rc|Arc}<T>` alloziert `T` auf dem Heap
-** `std::Arc` is thread-sicher
-* _scoped Threads_ aus dem Crossbeam crate (~OpenMP Thread Model) ermöglicht teilen von Stackvariablen
-
-=> Bis jetzt aber nur unveränderliche Variablen
-
-[NOTE.speaker]
---
---
-
-=== Atomare Variablen
-
-* Atomare Variablen (`std::sync::atomic::*`)
-** Schwierig zu benutzen
-** Folgt dem C11 Speichermodell mit Acquire/Release Semantik
-
-[source, Rust]
-----
-let reference_count: AtomicUsize = 0;
-reference_count.fetch_add(1, Ordering::Relaxed);
-----
-
-*Grundsätzlich:* Der trait `std::marker::Sync` muß für gemeinsame veränderliche Variablen implementiert werden
-
-[NOTE.speaker]
---
-T is Sync if &T is Send: if there is no possibility of undefined behavior (including data races) when passing &T references between threads.
---
-
-== Parallele Berechnung
-
-[source, Rust]
-----
-let sum = Arc::new(Mutex::new(0.0 as f64));
-
-let threads: Vec<_> = (0..nthreads).map(|tid| {
-    let sum = sum.clone();
-
-    thread::spawn(move || {
-        let start = (NUM_STEPS / nthreads) *  tid;
-        let end =   (NUM_STEPS / nthreads) * (tid+1);
-        for i in start..end {
-            let x = (i as f64 + 0.5) * step;
-            *sum.lock().unwrap() += 4.0 / (1.0 + x * x);
-        }
-    })
-}).collect();
-----
-
-[NOTE.speaker]
---
-wechsel zu Jens
---
-
-=== Berechnung mit Teilergebnissen
-
-* Der Mutex serialisiert die Berechnung
-* Idee: Teilergebnisse berechnen & zusammenführen
-
-[source, Rust]
-----
-let step = 1.0 / NUM_STEPS as f64;
-let sum = 0.0 as f64;
-
-let threads: Vec<_> = (0..nthreads)
-	.map(|tid| {
-		thread::spawn(move || {
-			let mut partial_sum = 0 as f64;
-			for i  in start..end {
-				let x = (i as f64 + 0.5) * step;
-				partial_sum += 4.0 / (1.0 + x * x);
-			}
-			partial_sum
-		})}).collect();
-----
-
-[NOTE.speaker]
---
-hier nur Berechnung
-im code start/end weggelassen
---
-
-=== Zusammenführen der Teilergebnisse
-
-* Ergebnisse der Threads stehen beim `join` zur Verfügung
-
-[source, Rust]
-----
-for t in threads {
-	sum += t.join().unwrap();
-}
-----
-
-[NOTE.speaker]
---
---
-
-=== Berechnung mit Kanälen
-
-* Ergebnisse durch Kanäle zusammenführen
-** Analogie zu *Communicating Sequential Processes* (CSP) und *Coroutines*
-
-[source, Rust]
-----
-fn term(start: u64, end: u64) -> f64
 {
-    let step = 1.0 / NUM_STEPS as f64;
-    let mut sum = 0.0;
-
-    for i in start..end {
-        let x = (i as f64 + 0.5) * step;
-        sum += 4.0 / (1.0 + x * x);
-    }
-
-    sum
+    "llvm-target": "x86_64-unknown-none",
+    "linker-flavor": "gcc",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "target-c-int-width" : "32",
+    "os": "none",
+    "arch": "x86_64",
+    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
+    "pre-link-args": [ "-m64" ],
+    "cpu": "x86-64",
+    "features": "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2,+soft-float",
+    "disable-redzone": true,
+    "eliminate-frame-pointer": true,
+    "linker-is-gnu": true,
+    "no-compiler-rt": true,
+    "archive-format": "gnu",
+    "code-model": "kernel",
+    "relocation-model": "static",
+    "panic-strategy": "abort"
 }
 ----
 
-[NOTE.speaker]
---
---
-
-=== Berechnung mit Kanälen
-
-* Teilergebnisse berechnen und versenden
+=== Ein-/Ausgaben
 
 [source, Rust]
 ----
-let (tx, rx) = mpsc::channel();
-
-for id in 0..nthreads {
-    let thread_tx = tx.clone();
-    let start = (NUM_STEPS / nthreads as u64) * id;
-    let end = (NUM_STEPS / nthreads as u64) * (id+1);
-
-    thread::spawn(move || {
-        let partial_sum = term(start, end);
-        thread_tx.send(partial_sum).unwrap();
-    });
-};
+println!("HermitCore is running on uhyve!");
 ----
 
-[NOTE.speaker]
---
---
+* Rust definiert für die Ein-/Ausgabe Macros
+** Neudefinition erforderlich
 
-=== Berechnung mit Kanälen
 
-* Ergebnisse empfangen und aufaddieren
+===  Ein-/Ausgabe
 
 [source, Rust]
 ----
-let mut sum = 0.0;
+macro_rules! print {
+	($($arg:tt)+) => ({
+		use core::fmt::Write;
 
-for _ in 0..nthreads {
-    sum = sum + rx.recv().unwrap();
+		#[allow(unused_unsafe)]
+		unsafe { $crate::console::CONSOLE.write_fmt(format_args!($($arg)+)).unwrap(); }
+	});
+}
+
+/// Print formatted text to our console, followed by a newline.
+macro_rules! println {
+	($($arg:tt)+) => (print!("{}\n", format_args!($($arg)+)));
 }
 ----
 
-* Diese Lösung skaliert wie gewünscht
-* Wie sieht es mit Lastbalanzierung aus?
-
-[NOTE.speaker]
---
-Pi hat natürlich kein Problem mit Lastbalanzierung.
---
-
-== Rayon: Parallelism in Rust
-
-* https://github.com/rayon-rs/rayon
-* Unterstützt parallele Berechungen auf Basis von Task-Parallelität und _Work Stealing_
-** Ähnlich zu Cilk (daher auch der Name)
-* Biete aber auch Daten-Parallelität über Iteratoren
-
-[NOTE.speaker]
---
-rayon == Kunstseide
-silk == Seide
-Eingesetzt in firefox
-Automatische Lastbalanzierung
---
-
-=== Iteratoren in Rust
-
-* Serielle Pi-Berechnung mit Hilfe von Iteratoren
-
+=== Console
 [source, Rust]
 ----
-let step = 1.0 / NUM_STEPS as f64;
+pub struct Console;
 
-let sum: f64 = (0..NUM_STEPS).into_iter()
-    .map(|i| {
-        let x = (i as f64 + 0.5) * step;
-        4.0 / (1.0 + x * x)
-    }).sum();
+/// A collection of methods that are required to format
+/// a message to HermitCore's console.
+impl fmt::Write for Console {
+	/// Print a single character.
+	fn write_char(&mut self, c: char) -> fmt::Result {
+		COM1.write_byte(c as u8);
+		Ok(())
+	}
 
-println!("Pi: {}", sum * (1.0 / NUM_STEPS as f64));
+	/// Print a string of characters.
+	fn write_str(&mut self, s: &str) -> fmt::Result {
+		...
+	}
+}
+
+pub static mut CONSOLE: Console = Console;
 ----
 
-[NOTE.speaker]
---
---
+=== Speicherverwaltung
 
-=== Pi-Berechnung mit Rayon
-
-* Parallele Pi-Berechnung mit Rayon
-* Lohnt sich nur bei größeren Aufgaben
-
-[source, Rust]
 ----
-let step = 1.0 / NUM_STEPS as f64;
+#![feature(allocator_api)]
 
-let sum: f64 = (0..NUM_STEPS).into_par_iter()
-    .map(|i| {
-        let x = (i as f64 + 0.5) * step;
-        4.0 / (1.0 + x * x)
-    }).sum();
-
-println!("Pi: {}", sum * (1.0 / NUM_STEPS as f64));
+#[global_allocator]
+static ALLOCATOR: &'static allocator::HermitAllocator =
+	&allocator::HermitAllocator;
 ----
 
-[NOTE.speaker]
---
---
-
-== Das Laplace-Problem
-
-* Wärme-Verteilung innerhalb einer Platte
-* Gelöst mit _Jacobi Over Relaxation_ (JOR)
-
-image::images/laplace.png[width=600]
-
-[NOTE.speaker]
---
-wechsel zu Stefan
---
-
-=== Lösung mit Hilfe von Tasks
-
-image::images/laplace_task.png[width=600]
-
-[NOTE.speaker]
---
-Gemessen auf Intel Haswell EP mit 10 Kernen
---
-
-=== Lösung durch eine // For-Schleife
-
-image::images/laplace_for.png[width=600]
-
-[NOTE.speaker]
---
-Sprung bei 10 Threads verschwindet mit Threadpool
---
-
-// == Weitere Hinweise
-//
-// Mal schauen ob wir das hier brauchen
-// *  [T]::split_at_mut() oder [T]::chunks() um gemeinsame Datenstrukturen aufzuteilen für den borrow checker
+* Registrierung einer eigenen Speicherverwaltung
+* Anschließend läuft alles transparent
+* Verwendung von dynamischen Datenstrukturen über die Core-Runtime möglich
 
 == Zusammenfassung
 
+* Rust lässt sich einfach für die OS-Entwicklung verwenden
+** Nicht alle Features konnte beschrieben werden
+** Benötigt ein _nightly_ Compiler
 * Ownership / Borrowing ist für einen _old school_ Entwickler gewönnungsbedürftig
-* _Fearless concurency_
-** Der Compiler verhindert _race conditions_
-** std hat Threads, Mutex, RW Lock und Arc
-** Rayon und Crossbeam vereinfachen viele Aufgaben
+* Performance?
 
 [NOTE.speaker]
 --

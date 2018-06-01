@@ -1,3 +1,3 @@
-# Rust for parallel and concurrent software
+# The day after C
 
-Talk at parallel 2018 (https://www.parallelcon.de)
+Talk at CCCAC

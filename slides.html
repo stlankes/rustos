@@ -1,0 +1,254 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>The day after C</title><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui" name="viewport"><link href="reveal.js-3.6.0//css/reveal.css" rel="stylesheet"><link rel="stylesheet" href="reveal.js-3.6.0//css/theme/solarized.css" id="theme"><link href="solarized-dark.css" rel="stylesheet"><script>var link = document.createElement( 'link' );
+link.rel = 'stylesheet';
+link.type = 'text/css';
+link.href = window.location.search.match( /print-pdf/gi ) ? "reveal.js-3.6.0//css/print/pdf.css" : "reveal.js-3.6.0//css/print/paper.css";
+document.getElementsByTagName( 'head' )[0].appendChild( link );</script><!--[if lt IE 9]><script src="reveal.js-3.6.0//lib/js/html5shiv.js"></script><![endif]--></head><body><div class="reveal"><div class="slides"><section class="title" data-state="title"><h1>The day after C</h1></section><section><section id="persnlicher_hintergrund"><h2>Persönlicher Hintergrund</h2><div class="ulist"><ul><li><p>Stefan Lankes</p><div class="ulist"><ul><li><p>ca. 20 Jahre an der RWTH Aachen</p></li><li><p>Lehrt und forscht im Bereich der Systemsoftware</p><div class="ulist"><ul><li><p>Insbesondere für das Hochleistungsrechnen</p></li><li><p>Unikernels</p></li></ul></div></li><li><p>Verwendet hauptsächlich C, C++ und Assembler</p></li><li><p><a href="https://github.com/stlankes">github.com/stlankes</a></p></li></ul></div></li></ul></div></section><section id="im_wandel_der_zeit"><h2>Im Wandel der Zeit</h2><div class="ulist"><ul><li><p>Der Entwicklungsprozess hat sich komplett geändert</p><div class="ulist"><ul><li><p>Versionsverwaltung: git</p></li><li><p>Social Coding: GitHub</p></li><li><p>Continuous Integration: Travis CI</p></li><li><p>Die Art des Testens: Code Coverage</p></li><li><p>Neue Programmiersprachen: Go, Julia, &#8230;&#8203;</p></li><li><p><em>Linux wurde zum Windows der Akademiker</em></p></li></ul></div></li></ul></div></section><section id="never_change_a_running_system"><h2>Never change a running system</h2><div class="ulist"><ul><li><p>Das OS Design hat sich nicht grundlegenden geändert</p></li><li><p>C dominiert weiterhin</p><div class="ulist"><ul><li><p><a href="https://marc.info/?l=openbsd-misc&amp;m=151233345723889&amp;w=2">Ein Wechsel benötigt  zu viel Zeit</a></p></li><li><p>Noch zeitgemäß?</p></li></ul></div></li><li><p>Der Entwicklungsprozess eines OS entfernt sich von einer Anwendung</p></li></ul></div></section></section>
+<section><section id="wie_sieht_eine_ideale_sprache_fr_die_os_entwicklung_aus"><h2>Wie sieht eine ideale Sprache für die OS-Entwicklung aus?</h2></section><section id="vor_nachteile_von_c"><h2>Vor-/Nachteile von C</h2><div class="ulist"><ul><li><p>C ist aus der UNIX-Entwicklung entstanden</p><div class="ulist"><ul><li><p>Passt zur OS Entwicklung</p></li></ul></div></li><li><p>Hoher Freiheitsgrad, kein Overhead</p></li><li><p>Fehler anfällig</p></li><li><p>Keine Laufzeitumgebung direkt im Kernel nutzbar</p><div class="ulist"><ul><li><p>Jeder definiert sich seine eigene</p></li><li><p>z.B. <a href="https://github.com/freebsd/freebsd/tree/master/sys/libkern">libkern von FreeBSD</a></p></li><li><p>strcpy, memcpy, qsort, &#8230;&#8203;</p></li></ul></div></li></ul></div></section><section id="wnsche_an_einer_os_sprache"><h2>Wünsche an einer OS-Sprache</h2><div class="ulist"><ul><li><p>Kein Overhead</p></li><li><p>Einfache Integration von C-Code</p></li><li><p>Vermeidung von Wettlaufsituationen</p></li><li><p>Einfacher und korrekter Umgang mit Zeigern</p><div class="ulist"><ul><li><p>Keine <strong>Dangling Pointers</strong>, keine Pufferüberläufe</p></li><li><p>Kein Garbage Collection</p></li></ul></div></li></ul></div></section><section id="wiederverwendung_von_rust_code"><h2>Wiederverwendung von Rust-Code</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="bash language-bash">$&gt; cat Cargo.toml
+[dependencies.raw-cpuid]
+version = "3.1.0"
+features = ["nightly"]
+
+[dependencies.x86]
+path = "../crates/x86"
+default-features = false</code></pre></div></div>
+<div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">extern crate raw_cpuid;
+extern crate spin;
+extern crate x86;</code></pre></div></div></section></section>
+<section><section id="was_ist_rust"><h2>Was ist Rust?</h2><div class="paragraph"><p>Rust ist eine (relativ) neue Programmiersprache für systemnahe Software</p></div><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">fn main() {
+    // Die Statements werden ausgeführt sobald
+    // das compilierte Binary gestartet wird.
+
+    // Ausgabe auf stdout
+    println!("Hello CCCAC!");
+}</code></pre></div></div><div class="paragraph"><p>Bekannt u.a. für den Einsatz in Firefox</p></div><div class="paragraph"><p>&#8658; Rust Code läuft somit auf Millionen von Rechnern</p></div><aside class="notes"><div class="paragraph"><p>Frage ans Publikum:</p></div>
+<div class="ulist"><ul><li><p>Wer kennt Rust?</p></li><li><p>Wer hat schonmal Code in Rust geschrieben?</p></li><li><p>Wessen Code hat auch compiliert?
+C-Ähnliche Syntax
+Nicht nur Einsatz in Firefox:</p></li><li><p>game engines</p></li><li><p>operating systems</p></li><li><p>file systems</p></li></ul></div></aside></section><section id="woher_kommt_rust"><h2>Woher kommt Rust?</h2><div class="imageblock" style=""><img src="images/rust.png" alt="rust" width="150"></div>
+<div class="ulist"><ul><li><p>Rust ist ein open-source (MIT + Apache) Projekt</p></li><li><p>Wird aktuell primär von Mozilla Research gesponsort</p></li><li><p>Die Weiterentwicklung selbst wird allerdings stark durch die Community getrieben</p></li></ul></div>
+<aside class="notes"></aside></section><section id="vorteile_von_rust"><h2>Vorteile von Rust</h2><div class="ulist"><ul><li><p>C/C++ ähnliche Performance</p><div class="ulist"><ul><li><p><a href="http://benchmarksgame.alioth.debian.org/u64q/compare.php?lang=rust&amp;lang2=gpp">Link zu Vergleichsmessungen</a></p></li></ul></div></li><li><p>Compilerbasierte Überprüfungen welche z.B.</p><div class="ulist"><ul><li><p>Speichersicherheit (ohne Garbage Collection) garantieren</p></li><li><p>Data Races verhindern</p></li></ul></div></li></ul></div>
+<div class="paragraph"><p>&#8658; <em>Falscher</em> Code compiliert nicht</p></div>
+<aside class="notes"><div class="paragraph"><p>Performance: Keinen Grund wieso es langsamer als C sein sollte</p></div>
+<div class="paragraph"><p>Link zu Computer Language Benchmarks Game</p></div></aside></section><section id="safety_vs_speed"><h2>Safety vs Speed</h2><div class="paragraph"><div class="title">URL: <a href="http://thoughtram.io/rust-and-nickel/#/11" class="bare">http://thoughtram.io/rust-and-nickel/#/11</a></div><p><span class="image"><img src="images/comparsion.png" alt="jhh" width="600"></span></p></div>
+<aside class="notes"><div class="paragraph"><p>Die Sicht auf sich selbst. Allgemein natürlich schwierig.</p></div></aside></section><section id="einfache_integration_von_c"><h2>Einfache Integration von C</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">#[repr(C)]
+struct RustObject {
+    number: c_int
+}
+
+#[link(name = "libprinto")]
+extern {
+    fn c_print_object(object: *mut RustObject) -&gt; c_int;
+}
+
+fn main() {
+    let mut rust_object = /* TODO */;
+
+    unsafe { c_print_object(&amp;mut *rust_object); }
+}</code></pre></div></div>
+<aside class="notes"></aside></section></section>
+<section><section id="ownership_borrowing"><h2>Ownership &amp; Borrowing</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="C++ language-C++">std::vector&lt;std::string&gt;* x = nullptr;
+
+{
+	std::vector&lt;std::string&gt; z;
+
+	z.push_back("Hello CCCAC!");
+	x = &amp;z;
+}
+
+std::cout &lt;&lt; (*x)[0] &lt;&lt; std::endl;</code></pre></div></div><aside class="notes"><div class="ulist"><ul><li><p>wechsel zu Stefan</p></li><li><p>z wird am Ende vom Scope zerstört</p></li><li><p>In der Realität verteilt über viele Files</p></li></ul></div></aside><div class="ulist"><ul><li><p>Ist dieses C++-Beispiel problematisch?</p></li></ul></div></section><section id="erlaubt_rust_solche_referenzen"><h2>Erlaubt Rust solche Referenzen?</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">let x;
+
+{
+	let z = vec!("Hello CCCAC!");
+
+	x = &amp;z;
+}
+
+println!("{}", x[0]);</code></pre></div></div>
+<aside class="notes"></aside></section><section id="was_sagt_der_compiler"><h2>Was sagt der Compiler?</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">error[E0597]: `z` does not live long enough
+  --&gt; src/main.rs:9:8
+   |
+9  |         x = &amp;z;
+   |              ^ borrowed value does not live long enough
+10 |     }
+   |     - `z` dropped here while still borrowed
+...
+13 | }
+   | - borrowed value needs to live until here</code></pre></div></div>
+<aside class="notes"></aside></section><section id="ownership"><h2>Ownership</h2><div class="ulist"><ul><li><p>Variablen werden an <strong>einen</strong> Besitzer (<em>Owner</em>) gebunden</p></li><li><p>Wird der Scope des Besitzers verlassen, wird die Variable freigeben</p></li><li><p>Yehuda Katz: <em>Ownership is the right to destroy</em></p></li></ul></div>
+<aside class="notes"></aside></section><section id="borrowing"><h2>Borrowing</h2><div class="ulist"><ul><li><p>Mit Hilfe von Referenzen kann der Besitzt ausgeliehen werden</p></li><li><p>Der Besitz geht automatisch wieder zurück, wenn die Referenz nicht mehr existiert</p></li></ul></div>
+<div class="listingblock"><div class="title">Sind die geschweiften Klammern nötig?</div><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">let mut x = vec!("Hello CCCAC!");
+
+{
+	let z = &amp;mut x;
+	// Do something with z...
+}
+
+println!("{}", x[0]);</code></pre></div></div>
+<aside class="notes"><div class="paragraph"><p>Ohne Klammern:
+error[E0502]: cannot borrow <code>v</code> as immutable because it is also borrowed as mutable
+  -&#8594; src/main.rs:94:20
+   |
+90 |         let x = &amp;mut v;
+   |                      - mutable borrow occurs here
+&#8230;&#8203;
+94 |     println!("{}", v[0]);
+   |                    ^ immutable borrow occurs here</p></div></aside></section></section>
+<section><section id="ein_os_mit_rust_entwickeln"><h2>Ein OS mit Rust entwickeln</h2></section><section id="existierende_projekte"><h2>Existierende Projekte</h2><div class="ulist"><ul><li><p><a href="https://os.phil-opp.com">OS Blog von Philipp Oppermann</a></p><div class="ulist"><ul><li><p>War mein Startpunkt</p></li></ul></div></li><li><p><a href="https://www.redox-os.org">Redox</a></p></li><li><p><a href="https://www.tockos.org">Tock</a></p></li><li><p><a href="https://github.com/hermitcore/libhermit-rs">HermitCore</a></p></li><li><p><a href="https://github.com/RWTH-OS/eduOS-rs">eduOS-rs</a></p></li></ul></div></section><section id="laufzeitumgebung"><h2>Laufzeitumgebung</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">#![no_std]
+
+use alloc::rc::Rc;
+use core::cell::RefCell;
+
+pub struct DoublyLinkedList&lt;T&gt; {
+}</code></pre></div></div>
+<div class="ulist"><ul><li><p>Erste Schritt: Abhänigkeiten vom OS entfernen</p><div class="ulist"><ul><li><p>Keine Verwendung der Standardlaufzeitumgebung möglich</p></li></ul></div></li><li><p>Aber die <strong>Core Runtime</strong> ist verwendbar</p></li></ul></div></section><section id="kern_laufzeitumgebung"><h2>Kern-Laufzeitumgebung</h2><div class="ulist"><ul><li><p>Cross-Compilierung für das <strong>neue</strong> OS nötig</p></li><li><p>Verwendung von Xargo um die Kern-Laufzeitumgebung zu bauen</p><div class="ulist"><ul><li><p>Cargo ähnliche Cross-Compilierung</p></li></ul></div></li></ul></div>
+<div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">$&gt; cat Xargo.toml
+[target.x86_64-hermit.dependencies]
+alloc = {}
+$&gt; xargo build --target x86_64-hermit</code></pre></div></div></section><section id="target_definieren"><h2>Target definieren</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Json language-Json">{
+    "llvm-target": "x86_64-unknown-none",
+    "linker-flavor": "gcc",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "target-c-int-width" : "32",
+    "os": "none",
+    "arch": "x86_64",
+    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
+    "pre-link-args": [ "-m64" ],
+    "cpu": "x86-64",
+    "features": "-mmx,-sse,-sse2,-sse3,-ssse3,-sse4.1,-sse4.2,-3dnow,-3dnowa,-avx,-avx2,+soft-float",
+    "disable-redzone": true,
+    "eliminate-frame-pointer": true,
+    "linker-is-gnu": true,
+    "no-compiler-rt": true,
+    "archive-format": "gnu",
+    "code-model": "kernel",
+    "relocation-model": "static",
+    "panic-strategy": "abort"
+}</code></pre></div></div></section><section id="ein_ausgaben"><h2>Ein-/Ausgaben</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">println!("HermitCore is running on uhyve!");</code></pre></div></div>
+<div class="ulist"><ul><li><p>Rust definiert für die Ein-/Ausgabe Macros</p><div class="ulist"><ul><li><p>Neudefinition erforderlich</p></li></ul></div></li></ul></div></section><section id="ein_ausgabe"><h2>Ein-/Ausgabe</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">macro_rules! print {
+	($($arg:tt)+) =&gt; ({
+		use core::fmt::Write;
+
+		#[allow(unused_unsafe)]
+		unsafe { $crate::console::CONSOLE.write_fmt(format_args!($($arg)+)).unwrap(); }
+	});
+}
+
+/// Print formatted text to our console, followed by a newline.
+macro_rules! println {
+	($($arg:tt)+) =&gt; (print!("{}\n", format_args!($($arg)+)));
+}</code></pre></div></div></section><section id="console"><h2>Console</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape class="Rust language-Rust">pub struct Console;
+
+/// A collection of methods that are required to format
+/// a message to HermitCore's console.
+impl fmt::Write for Console {
+	/// Print a single character.
+	fn write_char(&amp;mut self, c: char) -&gt; fmt::Result {
+		COM1.write_byte(c as u8);
+		Ok(())
+	}
+
+	/// Print a string of characters.
+	fn write_str(&amp;mut self, s: &amp;str) -&gt; fmt::Result {
+		...
+	}
+}
+
+pub static mut CONSOLE: Console = Console;</code></pre></div></div></section><section id="speicherverwaltung"><h2>Speicherverwaltung</h2><div class="listingblock"><div class="content"><pre class="highlight"><code data-noescape>#![feature(allocator_api)]
+
+#[global_allocator]
+static ALLOCATOR: &amp;'static allocator::HermitAllocator =
+	&amp;allocator::HermitAllocator;</code></pre></div></div>
+<div class="ulist"><ul><li><p>Registrierung einer eigenen Speicherverwaltung</p></li><li><p>Anschließend läuft alles transparent</p></li><li><p>Verwendung von dynamischen Datenstrukturen über die Core-Runtime möglich</p></li></ul></div></section></section>
+<section id="zusammenfassung"><h2>Zusammenfassung</h2><div class="ulist"><ul><li><p>Rust lässt sich einfach für die OS-Entwicklung verwenden</p><div class="ulist"><ul><li><p>Nicht alle Features konnte beschrieben werden</p></li><li><p>Benötigt ein <em>nightly</em> Compiler</p></li></ul></div></li><li><p>Ownership / Borrowing ist für einen <em>old school</em> Entwickler gewönnungsbedürftig</p></li><li><p>Performance?</p></li></ul></div>
+<aside class="notes"></aside></section></div></div><script src="reveal.js-3.6.0//lib/js/head.min.js"></script><script src="reveal.js-3.6.0//js/reveal.js"></script><script>// See https://github.com/hakimel/reveal.js#configuration for a full list of configuration options
+Reveal.initialize({
+  // Display controls in the bottom right corner
+  controls: true,
+  // Display a presentation progress bar
+  progress: true,
+  // Set a per-slide timing for speaker notes, null means none
+  defaultTiming: null,
+  // Display the page number of the current slide
+  slideNumber: true,
+  // Push each slide change to the browser history
+  history: true,
+  // Enable keyboard shortcuts for navigation
+  keyboard: true,
+  // Enable the slide overview mode
+  overview: true,
+  // Vertical centering of slides
+  center: true,
+  // Enables touch navigation on devices with touch input
+  touch: true,
+  // Loop the presentation
+  loop: false,
+  // Change the presentation direction to be RTL
+  rtl: false,
+  // Randomizes the order of slides each time the presentation loads
+  shuffle: false,
+  // Turns fragments on and off globally
+  fragments: true,
+  // Flags if the presentation is running in an embedded mode,
+  // i.e. contained within a limited portion of the screen
+  embedded: false,
+  // Flags if we should show a help overlay when the questionmark
+  // key is pressed
+  help: true,
+  // Flags if speaker notes should be visible to all viewers
+  showNotes: false,
+  // Global override for autolaying embedded media (video/audio/iframe)
+  // - null: Media will only autoplay if data-autoplay is present
+  // - true: All media will autoplay, regardless of individual setting
+  // - false: No media will autoplay, regardless of individual setting
+  autoPlayMedia: null,
+  // Number of milliseconds between automatically proceeding to the
+  // next slide, disabled when set to 0, this value can be overwritten
+  // by using a data-autoslide attribute on your slides
+  autoSlide: 0,
+  // Stop auto-sliding after user input
+  autoSlideStoppable: true,
+  // Enable slide navigation via mouse wheel
+  mouseWheel: false,
+  // Hides the address bar on mobile devices
+  hideAddressBar: true,
+  // Opens links in an iframe preview overlay
+  previewLinks: false,
+  // Theme (e.g., beige, black, league, night, serif, simple, sky, solarized, white)
+  // NOTE setting the theme in the config no longer works in reveal.js 3.x
+  //theme: Reveal.getQueryHash().theme || 'solarized',
+  // Transition style (e.g., none, fade, slide, convex, concave, zoom)
+  transition: Reveal.getQueryHash().transition || 'slide',
+  // Transition speed (e.g., default, fast, slow)
+  transitionSpeed: 'default',
+  // Transition style for full page slide backgrounds (e.g., none, fade, slide, convex, concave, zoom)
+  backgroundTransition: 'fade',
+  // Number of slides away from the current that are visible
+  viewDistance: 3,
+  // Parallax background image (e.g., "'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg'")
+  parallaxBackgroundImage: '',
+  // Parallax background size in CSS syntax (e.g., "2100px 900px")
+  parallaxBackgroundSize: '',
+
+  // The "normal" size of the presentation, aspect ratio will be preserved
+  // when the presentation is scaled to fit different resolutions. Can be
+  // specified using percentage units.
+  width: 960,
+  height: 700,
+
+  // Factor of the display size that should remain empty around the content
+  margin: 0.1,
+
+  // Bounds for smallest/largest possible scale to apply to content
+  minScale: 0.2,
+  maxScale: 1.5,
+
+  // Optional libraries used to extend on reveal.js
+  dependencies: [
+      { src: 'reveal.js-3.6.0//lib/js/classList.js', condition: function() { return !document.body.classList; } },
+      { src: 'reveal.js-3.6.0//plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'reveal.js-3.6.0//plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+      { src: 'reveal.js-3.6.0//plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+      { src: 'reveal.js-3.6.0//plugin/zoom-js/zoom.js', async: true },
+      { src: 'reveal.js-3.6.0//plugin/notes/notes.js', async: true }
+  ]
+});</script></body></html>
